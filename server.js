@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 import { getUserData, saveUserData } from "./src/storage.js";
 import { simulateBusiness } from "./src/simulate.js";
@@ -12,11 +14,28 @@ import { register, login, verifyToken } from "./src/auth.js";
 const app = express();
 
 /* =========================
-   🔧 MIDDLEWARE
+   🔧 MIDDLEWARE PRO
 ========================= */
+
+// CORS
 app.use(cors());
+
+// JSON
 app.use(express.json());
+
+// Static frontend
 app.use(express.static("public"));
+
+// Security
+app.use(helmet());
+
+// 🚀 Rate limit chống spam API
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60
+});
+app.use("/api", limiter);
+
 
 /* =========================
    🔐 AUTH
@@ -27,9 +46,13 @@ app.post("/api/register", async (req, res) => {
   try {
     const { username, password } = req.body;
 
+    if (!username || !password)
+      return res.status(400).json({ error: "Thiếu dữ liệu" });
+
     await register(username, password);
 
     res.json({ message: "Đăng ký thành công" });
+
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -40,38 +63,112 @@ app.post("/api/login", async (req, res) => {
   try {
     const { username, password } = req.body;
 
+    if (!username || !password)
+      return res.status(400).json({ error: "Thiếu dữ liệu" });
+
     const token = await login(username, password);
 
     res.json({ token });
+
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
+
 /* =========================
-   📊 BUSINESS API (THEO USER)
+   🤖 AI CHAT (PRO)
+========================= */
+
+app.post("/api/ai", verifyToken, async (req, res) => {
+  try {
+    const { message } = req.body;
+
+    if (!message)
+      return res.status(400).json({ reply: "Thiếu câu hỏi" });
+
+    const username = req.user.username;
+
+    const data = getUserData(username);
+    const state = simulateBusiness(data);
+
+    const prompt = `
+Bạn là chuyên gia kinh doanh online.
+
+Dữ liệu:
+- Traffic: ${state.traffic}
+- Orders: ${state.orders}
+- Revenue: ${state.revenue}
+- Profit: ${state.profit}
+- Conversion: ${state.conversion_rate}
+
+Yêu cầu:
+- Nói rõ vấn đề
+- Đưa 3 hành động cụ thể
+- Ngắn gọn
+
+Câu hỏi: ${message}
+`;
+
+    // ⚠️ Check API KEY
+    if (!process.env.GEMINI_API_KEY) {
+      return res.json({
+        reply: "❌ Chưa cấu hình GEMINI_API_KEY"
+      });
+    }
+
+    // ⏱️ Timeout tránh treo server
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 8000);
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    const reply =
+      result?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "AI không trả lời được";
+
+    res.json({ reply });
+
+  } catch (err) {
+    console.error("AI ERROR:", err);
+    res.status(500).json({ reply: "❌ Lỗi AI server" });
+  }
+});
+
+
+/* =========================
+   📊 BUSINESS API
 ========================= */
 
 app.get("/api/business", verifyToken, async (req, res) => {
   try {
     const username = req.user.username;
 
-    // 🔥 LẤY DATA RIÊNG USER
     let data = getUserData(username);
 
-    // 🔄 SIMULATE
     const state = simulateBusiness(data);
 
-    // 🚨 DETECT
+    const alert = detectBusinessRisk(state);
+
     const advice = await businessAdvice(state);
 
-    // 🔮 WHAT-IF
     const scenario = simulateWhatIf(state, {
       ads_increase: 50,
       conversion_boost: 0.01
     });
 
-    // 💾 LƯU LẠI
     saveUserData(username, state);
 
     res.json({
@@ -83,18 +180,20 @@ app.get("/api/business", verifyToken, async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("BUSINESS ERROR:", err);
     res.status(500).json({ error: "Server lỗi" });
   }
 });
 
+
 /* =========================
-   🧪 TEST
+   🧪 HEALTH CHECK
 ========================= */
 
 app.get("/", (req, res) => {
   res.send("🚀 AI Business Simulator đang chạy...");
 });
+
 
 /* =========================
    ▶️ START SERVER

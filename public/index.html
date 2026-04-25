@@ -26,15 +26,16 @@ body {
 
 .sidebar h2 {
   color: #38bdf8;
+  margin-bottom: 20px;
 }
 
 .sidebar button {
   width: 100%;
-  margin-top: 10px;
   padding: 10px;
   background: #1e293b;
   color: white;
   border: none;
+  border-radius: 5px;
   cursor: pointer;
 }
 
@@ -51,15 +52,7 @@ body {
   margin-bottom: 20px;
 }
 
-.status {
-  font-weight: bold;
-}
-
 /* LOGIN */
-.login-box {
-  margin-bottom: 20px;
-}
-
 input {
   padding: 10px;
   margin: 5px;
@@ -68,12 +61,11 @@ input {
 }
 
 button {
-  padding: 10px 15px;
+  padding: 10px;
   margin: 5px;
-  border: none;
   border-radius: 5px;
+  border: none;
   background: #38bdf8;
-  color: black;
   cursor: pointer;
 }
 
@@ -91,20 +83,27 @@ button {
 }
 
 .card h3 {
-  font-size: 14px;
   color: #94a3b8;
+  font-size: 14px;
 }
 
 .card p {
   font-size: 22px;
 }
 
-/* ALERT */
-#alert { color: red; margin-top: 10px; }
-#advice { color: #22c55e; margin-top: 10px; }
-#scenario { color: #facc15; margin-top: 10px; }
+/* CHAT */
+.chat-box {
+  background: #020617;
+  height: 220px;
+  overflow-y: auto;
+  padding: 10px;
+  border-radius: 10px;
+}
 
-/* CHART */
+.msg-user { color: #38bdf8; }
+.msg-ai { color: #22c55e; }
+.msg-loading { color: gray; }
+
 canvas {
   margin-top: 20px;
   background: #020617;
@@ -125,56 +124,55 @@ canvas {
 
 <div class="header">
   <h1>📊 Dashboard</h1>
-  <div class="status" id="status">🔴 Offline</div>
+  <div id="status">🔴 Offline</div>
 </div>
 
+<!-- CHAT -->
+<h2>💬 AI Chat</h2>
+<div id="chatBox" class="chat-box"></div>
+
+<input id="chatInput" placeholder="Hỏi AI..." style="width:70%;">
+<button onclick="sendChat()">Gửi</button>
+
 <!-- LOGIN -->
-<div class="login-box">
+<div>
   <input id="user" placeholder="Username">
   <input id="pass" type="password" placeholder="Password">
-
   <button onclick="register()">Register</button>
   <button onclick="login()">Login</button>
 </div>
 
 <!-- KPI -->
 <div class="cards">
-  <div class="card">
-    <h3>Traffic</h3>
-    <p id="traffic">0</p>
-  </div>
-
-  <div class="card">
-    <h3>Orders</h3>
-    <p id="orders">0</p>
-  </div>
-
-  <div class="card">
-    <h3>Revenue</h3>
-    <p id="revenue">0</p>
-  </div>
-
-  <div class="card">
-    <h3>Profit</h3>
-    <p id="profit">0</p>
-  </div>
+  <div class="card"><h3>Traffic</h3><p id="traffic">0</p></div>
+  <div class="card"><h3>Orders</h3><p id="orders">0</p></div>
+  <div class="card"><h3>Revenue</h3><p id="revenue">0</p></div>
+  <div class="card"><h3>Profit</h3><p id="profit">0</p></div>
 </div>
 
-<h2 id="alert"></h2>
+<h3 id="alert"></h3>
 <h3 id="advice"></h3>
 <h3 id="scenario"></h3>
 
-<canvas id="chart" height="120"></canvas>
+<canvas id="chart"></canvas>
 
 </div>
 
 <script>
-let token = "";
+let token = localStorage.getItem("token") || "";
+
+/* STATUS */
+if (token) {
+  document.getElementById("status").innerText = "🟢 Online";
+}
+
+/* ENTER CHAT */
+document.getElementById("chatInput").addEventListener("keypress", e => {
+  if (e.key === "Enter") sendChat();
+});
 
 /* CHART */
-const ctx = document.getElementById("chart").getContext("2d");
-
-const chart = new Chart(ctx, {
+const chart = new Chart(document.getElementById("chart"), {
   type: "line",
   data: {
     labels: [],
@@ -183,104 +181,113 @@ const chart = new Chart(ctx, {
       { label: "Profit", data: [], borderColor: "#22c55e" }
     ]
   },
-  options: {
-    animation: false,
-    plugins: { legend: { labels: { color: "white" } } },
-    scales: {
-      x: { ticks: { color: "white" } },
-      y: { ticks: { color: "white" } }
-    }
-  }
+  options: { animation: false }
 });
 
 /* AUTH */
 async function register() {
-  try {
-    const res = await fetch("/api/register", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        username: document.getElementById("user").value,
-        password: document.getElementById("pass").value
-      })
-    });
-
-    alert(await res.text());
-  } catch (err) {
-    alert("Lỗi register");
-  }
+  const res = await fetch("/api/register", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ username: user.value, password: pass.value })
+  });
+  alert(await res.text());
 }
 
 async function login() {
-  try {
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        username: document.getElementById("user").value,
-        password: document.getElementById("pass").value
-      })
-    });
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ username: user.value, password: pass.value })
+  });
 
-    const data = await res.json();
+  const data = await res.json();
 
-    if (data.token) {
-      token = data.token;
-      document.getElementById("status").innerText = "🟢 Online";
-    } else {
-      alert("Sai tài khoản");
-    }
-  } catch (err) {
-    alert("Lỗi login");
+  if (data.token) {
+    token = data.token;
+    localStorage.setItem("token", token);
+    status.innerText = "🟢 Online";
   }
 }
 
 function logout() {
   token = "";
-  document.getElementById("status").innerText = "🔴 Offline";
+  localStorage.removeItem("token");
+  status.innerText = "🔴 Offline";
 }
 
-/* LOAD DATA */
-async function loadData() {
-  if (!token) return;
+/* CHAT */
+async function sendChat() {
+  if (!token) return alert("Bạn chưa login");
+
+  const input = document.getElementById("chatInput");
+  const box = document.getElementById("chatBox");
+
+  if (!input.value) return;
+
+  box.innerHTML += `<div class="msg-user">🧑 ${input.value}</div>`;
+
+  const loading = document.createElement("div");
+  loading.className = "msg-loading";
+  loading.innerText = "🤖 Đang suy nghĩ...";
+  box.appendChild(loading);
+
+  const message = input.value;
+  input.value = "";
 
   try {
-    const res = await fetch("/api/business", {
+    const res = await fetch("/api/ai", {
+      method: "POST",
       headers: {
-        "Authorization": "Bearer " + token
-      }
+        "Content-Type":"application/json",
+        "Authorization":"Bearer " + token
+      },
+      body: JSON.stringify({ message })
     });
 
     const data = await res.json();
-    const s = data.state;
 
-    document.getElementById("traffic").innerText = s.traffic;
-    document.getElementById("orders").innerText = s.orders;
-    document.getElementById("revenue").innerText = s.revenue;
-    document.getElementById("profit").innerText = s.profit;
+    loading.remove();
+    box.innerHTML += `<div class="msg-ai">🤖 ${data.reply}</div>`;
+    box.scrollTop = box.scrollHeight;
 
-    document.getElementById("alert").innerText = data.alert || "";
-    document.getElementById("advice").innerText =
-      "💡 " + (data.advice?.join(" | ") || "");
-    document.getElementById("scenario").innerText =
-      "🔮 Ads → " + (data.scenario?.revenue || 0);
-
-    const time = new Date().toLocaleTimeString();
-
-    chart.data.labels.push(time);
-    chart.data.datasets[0].data.push(s.revenue);
-    chart.data.datasets[1].data.push(s.profit);
-
-    if (chart.data.labels.length > 15) {
-      chart.data.labels.shift();
-      chart.data.datasets.forEach(d => d.data.shift());
-    }
-
-    chart.update();
-
-  } catch (err) {
-    console.log("API lỗi");
+  } catch {
+    loading.innerText = "❌ Lỗi AI";
   }
+}
+
+/* DATA */
+async function loadData() {
+  if (!token) return;
+
+  const res = await fetch("/api/business", {
+    headers: { Authorization: "Bearer " + token }
+  });
+
+  const data = await res.json();
+  const s = data.state;
+
+  traffic.innerText = s.traffic;
+  orders.innerText = s.orders;
+  revenue.innerText = s.revenue;
+  profit.innerText = s.profit;
+
+  alert.innerText = data.alert || "";
+  advice.innerText = "💡 " + (data.advice?.join(" | ") || "");
+  scenario.innerText = "🔮 Ads → " + (data.scenario?.revenue || 0);
+
+  const t = new Date().toLocaleTimeString();
+
+  chart.data.labels.push(t);
+  chart.data.datasets[0].data.push(s.revenue);
+  chart.data.datasets[1].data.push(s.profit);
+
+  if (chart.data.labels.length > 15) {
+    chart.data.labels.shift();
+    chart.data.datasets.forEach(d => d.data.shift());
+  }
+
+  chart.update();
 }
 
 setInterval(loadData, 2000);
