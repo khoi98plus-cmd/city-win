@@ -1,88 +1,151 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>AI Business Simulator</title>
+<meta charset="UTF-8">
+<title>AI Business Dashboard</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <style>
-    body {
-      font-family: Arial;
-      background: #0f172a;
-      color: white;
-      text-align: center;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #0f172a;
+  color: white;
+}
 
-    .card {
-      background: #1e293b;
-      margin: 10px;
-      padding: 15px;
-      border-radius: 10px;
-      display: inline-block;
-      width: 180px;
-    }
+/* HEADER */
+.header {
+  background: #020617;
+  padding: 15px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  border-bottom: 1px solid #1e293b;
+}
 
-    input {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 5px;
-      border: none;
-    }
+/* LOGIN */
+.login-box {
+  text-align: center;
+  margin: 20px;
+}
 
-    button {
-      padding: 10px 15px;
-      margin: 5px;
-      border: none;
-      border-radius: 5px;
-      background: #38bdf8;
-      color: black;
-      cursor: pointer;
-    }
+input {
+  padding: 10px;
+  margin: 5px;
+  border-radius: 6px;
+  border: none;
+  width: 200px;
+}
 
-    #alert {
-      color: red;
-      margin: 15px;
-    }
+button {
+  padding: 10px 15px;
+  margin: 5px;
+  border: none;
+  border-radius: 6px;
+  background: #38bdf8;
+  cursor: pointer;
+  font-weight: bold;
+}
 
-    #advice {
-      color: #22c55e;
-      margin: 15px;
-    }
+/* GRID */
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  padding: 20px;
+}
 
-    #scenario {
-      color: #facc15;
-      margin: 15px;
-    }
-  </style>
+/* CARD */
+.card {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.card h3 {
+  margin-bottom: 10px;
+  color: #94a3b8;
+}
+
+.card p {
+  font-size: 22px;
+  font-weight: bold;
+}
+
+/* ALERT */
+#alert {
+  color: #ef4444;
+  text-align: center;
+  margin-top: 10px;
+}
+
+#advice {
+  color: #22c55e;
+  text-align: center;
+  margin-top: 10px;
+}
+
+#scenario {
+  color: #facc15;
+  text-align: center;
+  margin-top: 10px;
+}
+
+/* CHART */
+.chart-container {
+  width: 90%;
+  margin: auto;
+  margin-top: 20px;
+}
+</style>
 </head>
 
 <body>
 
-<h1>💼 AI Business Simulator</h1>
+<div class="header">💼 AI Business Dashboard</div>
 
 <!-- LOGIN -->
-<div>
-  <input id="user" placeholder="username">
-  <input id="pass" type="password" placeholder="password">
-
+<div class="login-box">
+  <input id="user" placeholder="Username">
+  <input id="pass" type="password" placeholder="Password">
+  <br>
   <button onclick="register()">Register</button>
   <button onclick="login()">Login</button>
 </div>
 
-<hr>
-
 <!-- DASHBOARD -->
-<div class="card">Traffic <p id="traffic">--</p></div>
-<div class="card">Orders <p id="orders">--</p></div>
-<div class="card">Revenue <p id="revenue">--</p></div>
-<div class="card">Profit <p id="profit">--</p></div>
+<div class="dashboard">
+  <div class="card">
+    <h3>👥 Traffic</h3>
+    <p id="traffic">0</p>
+  </div>
+
+  <div class="card">
+    <h3>🛒 Orders</h3>
+    <p id="orders">0</p>
+  </div>
+
+  <div class="card">
+    <h3>💰 Revenue</h3>
+    <p id="revenue">0</p>
+  </div>
+
+  <div class="card">
+    <h3>📈 Profit</h3>
+    <p id="profit">0</p>
+  </div>
+</div>
 
 <h2 id="alert"></h2>
 <h3 id="advice"></h3>
 <h3 id="scenario"></h3>
 
-<canvas id="chart" width="600" height="300"></canvas>
+<div class="chart-container">
+  <canvas id="chart"></canvas>
+</div>
 
 <script>
 let token = "";
@@ -94,19 +157,27 @@ const chart = new Chart(ctx, {
   data: {
     labels: [],
     datasets: [
-      { label: "Revenue", data: [], borderColor: "#38bdf8" },
-      { label: "Profit", data: [], borderColor: "#22c55e" }
+      {
+        label: "Revenue",
+        data: [],
+        borderColor: "#38bdf8",
+        tension: 0.3
+      },
+      {
+        label: "Profit",
+        data: [],
+        borderColor: "#22c55e",
+        tension: 0.3
+      }
     ]
   },
   options: {
+    responsive: true,
     animation: false
   }
 });
 
-/* =====================
-   🔐 AUTH
-===================== */
-
+/* AUTH */
 async function register() {
   const res = await fetch("/api/register", {
     method: "POST",
@@ -117,8 +188,7 @@ async function register() {
     })
   });
 
-  const text = await res.text();
-  alert(text);
+  alert(await res.text());
 }
 
 async function login() {
@@ -135,67 +205,48 @@ async function login() {
 
   if (data.token) {
     token = data.token;
-    alert("Login thành công");
+    alert("✅ Login thành công");
   } else {
-    alert("Sai thông tin");
+    alert("❌ Sai thông tin");
   }
 }
 
-/* =====================
-   📊 LOAD DATA
-===================== */
-
+/* LOAD DATA */
 async function loadData() {
   if (!token) return;
 
-  try {
-    const res = await fetch("/api/business", {
-      headers: {
-        "Authorization": "Bearer " + token
-      }
-    });
-
-    const data = await res.json();
-
-    const s = data.state;
-
-    // update số
-    document.getElementById("traffic").innerText = s.traffic;
-    document.getElementById("orders").innerText = s.orders;
-    document.getElementById("revenue").innerText = s.revenue;
-    document.getElementById("profit").innerText = s.profit;
-
-    // alert
-    document.getElementById("alert").innerText = data.alert;
-
-    // advice
-    document.getElementById("advice").innerText =
-      "💡 " + (data.advice.join(" | ") || "Không có");
-
-    // scenario
-    document.getElementById("scenario").innerText =
-      "🔮 Nếu chạy ads → Doanh thu: " + data.scenario.revenue;
-
-    // chart
-    const time = new Date().toLocaleTimeString();
-
-    chart.data.labels.push(time);
-    chart.data.datasets[0].data.push(s.revenue);
-    chart.data.datasets[1].data.push(s.profit);
-
-    if (chart.data.labels.length > 10) {
-      chart.data.labels.shift();
-      chart.data.datasets.forEach(d => d.data.shift());
+  const res = await fetch("/api/business", {
+    headers: {
+      "Authorization": "Bearer " + token
     }
+  });
 
-    chart.update();
+  const data = await res.json();
+  const s = data.state;
 
-  } catch (err) {
-    console.error(err);
+  traffic.innerText = s.traffic;
+  orders.innerText = s.orders;
+  revenue.innerText = s.revenue;
+  profit.innerText = s.profit;
+
+  alert.innerText = data.alert;
+  advice.innerText = "💡 " + (data.advice.join(" | ") || "Không có");
+  scenario.innerText = "🔮 Nếu chạy ads → " + data.scenario.revenue;
+
+  const time = new Date().toLocaleTimeString();
+
+  chart.data.labels.push(time);
+  chart.data.datasets[0].data.push(s.revenue);
+  chart.data.datasets[1].data.push(s.profit);
+
+  if (chart.data.labels.length > 10) {
+    chart.data.labels.shift();
+    chart.data.datasets.forEach(d => d.data.shift());
   }
+
+  chart.update();
 }
 
-// chạy mỗi 2s
 setInterval(loadData, 2000);
 </script>
 
