@@ -25,7 +25,6 @@ body {
 }
 
 .sidebar h2 {
-  margin-bottom: 20px;
   color: #38bdf8;
 }
 
@@ -53,7 +52,7 @@ body {
 }
 
 .status {
-  color: #22c55e;
+  font-weight: bold;
 }
 
 /* LOGIN */
@@ -98,7 +97,6 @@ button {
 
 .card p {
   font-size: 22px;
-  margin-top: 5px;
 }
 
 /* ALERT */
@@ -118,18 +116,16 @@ canvas {
 
 <body>
 
-<!-- SIDEBAR -->
 <div class="sidebar">
   <h2>🚀 AI System</h2>
   <button onclick="logout()">Logout</button>
 </div>
 
-<!-- MAIN -->
 <div class="main">
 
 <div class="header">
   <h1>📊 Dashboard</h1>
-  <div class="status" id="status">Offline</div>
+  <div class="status" id="status">🔴 Offline</div>
 </div>
 
 <!-- LOGIN -->
@@ -199,77 +195,92 @@ const chart = new Chart(ctx, {
 
 /* AUTH */
 async function register() {
-  const res = await fetch("/api/register", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      username: user.value,
-      password: pass.value
-    })
-  });
+  try {
+    const res = await fetch("/api/register", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        username: document.getElementById("user").value,
+        password: document.getElementById("pass").value
+      })
+    });
 
-  alert(await res.text());
+    alert(await res.text());
+  } catch (err) {
+    alert("Lỗi register");
+  }
 }
 
 async function login() {
-  const res = await fetch("/api/login", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      username: user.value,
-      password: pass.value
-    })
-  });
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        username: document.getElementById("user").value,
+        password: document.getElementById("pass").value
+      })
+    });
 
-  const data = await res.json();
+    const data = await res.json();
 
-  if (data.token) {
-    token = data.token;
-    document.getElementById("status").innerText = "Online";
-    alert("Login OK");
+    if (data.token) {
+      token = data.token;
+      document.getElementById("status").innerText = "🟢 Online";
+    } else {
+      alert("Sai tài khoản");
+    }
+  } catch (err) {
+    alert("Lỗi login");
   }
 }
 
 function logout() {
   token = "";
-  document.getElementById("status").innerText = "Offline";
+  document.getElementById("status").innerText = "🔴 Offline";
 }
 
 /* LOAD DATA */
 async function loadData() {
   if (!token) return;
 
-  const res = await fetch("/api/business", {
-    headers: {
-      "Authorization": "Bearer " + token
+  try {
+    const res = await fetch("/api/business", {
+      headers: {
+        "Authorization": "Bearer " + token
+      }
+    });
+
+    const data = await res.json();
+    const s = data.state;
+
+    document.getElementById("traffic").innerText = s.traffic;
+    document.getElementById("orders").innerText = s.orders;
+    document.getElementById("revenue").innerText = s.revenue;
+    document.getElementById("profit").innerText = s.profit;
+
+    document.getElementById("alert").innerText = data.alert || "";
+    document.getElementById("advice").innerText =
+      "💡 " + (data.advice?.join(" | ") || "");
+    document.getElementById("scenario").innerText =
+      "🔮 Ads → " + (data.scenario?.revenue || 0);
+
+    const time = new Date().toLocaleTimeString();
+
+    chart.data.labels.push(time);
+    chart.data.datasets[0].data.push(s.revenue);
+    chart.data.datasets[1].data.push(s.profit);
+
+    if (chart.data.labels.length > 15) {
+      chart.data.labels.shift();
+      chart.data.datasets.forEach(d => d.data.shift());
     }
-  });
 
-  const data = await res.json();
-  const s = data.state;
+    chart.update();
 
-  document.getElementById("traffic").innerText = s.traffic;
-  document.getElementById("orders").innerText = s.orders;
-  document.getElementById("revenue").innerText = s.revenue;
-  document.getElementById("profit").innerText = s.profit;
-
-  document.getElementById("alert").innerText = data.alert || "";
-  document.getElementById("advice").innerText = "💡 " + (data.advice.join(" | ") || "");
-  document.getElementById("scenario").innerText =
-    "🔮 Ads → " + data.scenario.revenue;
-
-  const time = new Date().toLocaleTimeString();
-
-  chart.data.labels.push(time);
-  chart.data.datasets[0].data.push(s.revenue);
-  chart.data.datasets[1].data.push(s.profit);
-
-  if (chart.data.labels.length > 15) {
-    chart.data.labels.shift();
-    chart.data.datasets.forEach(d => d.data.shift());
+  } catch (err) {
+    console.log("API lỗi");
   }
-
-  chart.update();
 }
 
 setInterval(loadData, 2000);
