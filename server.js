@@ -52,7 +52,7 @@ app.post("/api/login", async (req, res) => {
    📊 BUSINESS API (THEO USER)
 ========================= */
 
-app.get("/api/business", verifyToken, (req, res) => {
+app.get("/api/business", verifyToken, async (req, res) => {
   try {
     const username = req.user.username;
 
@@ -63,10 +63,10 @@ app.get("/api/business", verifyToken, (req, res) => {
     const state = simulateBusiness(data);
 
     // 🚨 DETECT
-    const alert = detectBusinessRisk(state);
+    const advice = await businessAdvice(state);
 
     // 🤖 ADVICE
-    const advice = businessAdvice(state);
+    const advice = await businessAdvice(state);
 
     // 🔮 WHAT-IF
     const scenario = simulateWhatIf(state, {
