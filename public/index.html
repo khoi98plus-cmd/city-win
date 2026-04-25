@@ -2,139 +2,164 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>AI Business Dashboard</title>
+<title>AI Business Simulator PRO</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
 body {
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: Arial;
   background: #0f172a;
   color: white;
+  display: flex;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 220px;
+  background: #020617;
+  height: 100vh;
+  padding: 20px;
+}
+
+.sidebar h2 {
+  margin-bottom: 20px;
+  color: #38bdf8;
+}
+
+.sidebar button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  background: #1e293b;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+/* MAIN */
+.main {
+  flex: 1;
+  padding: 20px;
 }
 
 /* HEADER */
 .header {
-  background: #020617;
-  padding: 15px;
-  text-align: center;
-  font-size: 22px;
-  font-weight: bold;
-  border-bottom: 1px solid #1e293b;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.status {
+  color: #22c55e;
 }
 
 /* LOGIN */
 .login-box {
-  text-align: center;
-  margin: 20px;
+  margin-bottom: 20px;
 }
 
 input {
   padding: 10px;
   margin: 5px;
-  border-radius: 6px;
+  border-radius: 5px;
   border: none;
-  width: 200px;
 }
 
 button {
   padding: 10px 15px;
   margin: 5px;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   background: #38bdf8;
+  color: black;
   cursor: pointer;
-  font-weight: bold;
 }
 
-/* GRID */
-.dashboard {
+/* CARDS */
+.cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 15px;
-  padding: 20px;
 }
 
-/* CARD */
 .card {
   background: #1e293b;
-  padding: 20px;
-  border-radius: 12px;
-  text-align: center;
-  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  padding: 15px;
+  border-radius: 10px;
 }
 
 .card h3 {
-  margin-bottom: 10px;
+  font-size: 14px;
   color: #94a3b8;
 }
 
 .card p {
   font-size: 22px;
-  font-weight: bold;
+  margin-top: 5px;
 }
 
 /* ALERT */
-#alert {
-  color: #ef4444;
-  text-align: center;
-  margin-top: 10px;
-}
-
-#advice {
-  color: #22c55e;
-  text-align: center;
-  margin-top: 10px;
-}
-
-#scenario {
-  color: #facc15;
-  text-align: center;
-  margin-top: 10px;
-}
+#alert { color: red; margin-top: 10px; }
+#advice { color: #22c55e; margin-top: 10px; }
+#scenario { color: #facc15; margin-top: 10px; }
 
 /* CHART */
-.chart-container {
-  width: 90%;
-  margin: auto;
+canvas {
   margin-top: 20px;
+  background: #020617;
+  padding: 10px;
+  border-radius: 10px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">💼 AI Business Dashboard</div>
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <h2>🚀 AI System</h2>
+  <button onclick="logout()">Logout</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<div class="header">
+  <h1>📊 Dashboard</h1>
+  <div class="status" id="status">Offline</div>
+</div>
 
 <!-- LOGIN -->
 <div class="login-box">
   <input id="user" placeholder="Username">
   <input id="pass" type="password" placeholder="Password">
-  <br>
+
   <button onclick="register()">Register</button>
   <button onclick="login()">Login</button>
 </div>
 
-<!-- DASHBOARD -->
-<div class="dashboard">
+<!-- KPI -->
+<div class="cards">
   <div class="card">
-    <h3>👥 Traffic</h3>
+    <h3>Traffic</h3>
     <p id="traffic">0</p>
   </div>
 
   <div class="card">
-    <h3>🛒 Orders</h3>
+    <h3>Orders</h3>
     <p id="orders">0</p>
   </div>
 
   <div class="card">
-    <h3>💰 Revenue</h3>
+    <h3>Revenue</h3>
     <p id="revenue">0</p>
   </div>
 
   <div class="card">
-    <h3>📈 Profit</h3>
+    <h3>Profit</h3>
     <p id="profit">0</p>
   </div>
 </div>
@@ -143,13 +168,14 @@ button {
 <h3 id="advice"></h3>
 <h3 id="scenario"></h3>
 
-<div class="chart-container">
-  <canvas id="chart"></canvas>
+<canvas id="chart" height="120"></canvas>
+
 </div>
 
 <script>
 let token = "";
 
+/* CHART */
 const ctx = document.getElementById("chart").getContext("2d");
 
 const chart = new Chart(ctx, {
@@ -157,23 +183,17 @@ const chart = new Chart(ctx, {
   data: {
     labels: [],
     datasets: [
-      {
-        label: "Revenue",
-        data: [],
-        borderColor: "#38bdf8",
-        tension: 0.3
-      },
-      {
-        label: "Profit",
-        data: [],
-        borderColor: "#22c55e",
-        tension: 0.3
-      }
+      { label: "Revenue", data: [], borderColor: "#38bdf8" },
+      { label: "Profit", data: [], borderColor: "#22c55e" }
     ]
   },
   options: {
-    responsive: true,
-    animation: false
+    animation: false,
+    plugins: { legend: { labels: { color: "white" } } },
+    scales: {
+      x: { ticks: { color: "white" } },
+      y: { ticks: { color: "white" } }
+    }
   }
 });
 
@@ -205,10 +225,14 @@ async function login() {
 
   if (data.token) {
     token = data.token;
-    alert("✅ Login thành công");
-  } else {
-    alert("❌ Sai thông tin");
+    document.getElementById("status").innerText = "Online";
+    alert("Login OK");
   }
+}
+
+function logout() {
+  token = "";
+  document.getElementById("status").innerText = "Offline";
 }
 
 /* LOAD DATA */
@@ -224,14 +248,15 @@ async function loadData() {
   const data = await res.json();
   const s = data.state;
 
-  traffic.innerText = s.traffic;
-  orders.innerText = s.orders;
-  revenue.innerText = s.revenue;
-  profit.innerText = s.profit;
+  document.getElementById("traffic").innerText = s.traffic;
+  document.getElementById("orders").innerText = s.orders;
+  document.getElementById("revenue").innerText = s.revenue;
+  document.getElementById("profit").innerText = s.profit;
 
-  alert.innerText = data.alert;
-  advice.innerText = "💡 " + (data.advice.join(" | ") || "Không có");
-  scenario.innerText = "🔮 Nếu chạy ads → " + data.scenario.revenue;
+  document.getElementById("alert").innerText = data.alert || "";
+  document.getElementById("advice").innerText = "💡 " + (data.advice.join(" | ") || "");
+  document.getElementById("scenario").innerText =
+    "🔮 Ads → " + data.scenario.revenue;
 
   const time = new Date().toLocaleTimeString();
 
@@ -239,7 +264,7 @@ async function loadData() {
   chart.data.datasets[0].data.push(s.revenue);
   chart.data.datasets[1].data.push(s.profit);
 
-  if (chart.data.labels.length > 10) {
+  if (chart.data.labels.length > 15) {
     chart.data.labels.shift();
     chart.data.datasets.forEach(d => d.data.shift());
   }

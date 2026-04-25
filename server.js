@@ -65,9 +65,6 @@ app.get("/api/business", verifyToken, async (req, res) => {
     // 🚨 DETECT
     const advice = await businessAdvice(state);
 
-    // 🤖 ADVICE
-    const advice = await businessAdvice(state);
-
     // 🔮 WHAT-IF
     const scenario = simulateWhatIf(state, {
       ads_increase: 50,
