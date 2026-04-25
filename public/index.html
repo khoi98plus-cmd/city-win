@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>AI Business Simulator</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      text-align: center;
+    }
+
+    .card {
+      background: #1e293b;
+      margin: 10px;
+      padding: 15px;
+      border-radius: 10px;
+      display: inline-block;
+      width: 180px;
+    }
+
+    input {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 5px;
+      border: none;
+    }
+
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      background: #38bdf8;
+      color: black;
+      cursor: pointer;
+    }
+
+    #alert {
+      color: red;
+      margin: 15px;
+    }
+
+    #advice {
+      color: #22c55e;
+      margin: 15px;
+    }
+
+    #scenario {
+      color: #facc15;
+      margin: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>💼 AI Business Simulator</h1>
+
+<!-- LOGIN -->
+<div>
+  <input id="user" placeholder="username">
+  <input id="pass" type="password" placeholder="password">
+
+  <button onclick="register()">Register</button>
+  <button onclick="login()">Login</button>
+</div>
+
+<hr>
+
+<!-- DASHBOARD -->
+<div class="card">Traffic <p id="traffic">--</p></div>
+<div class="card">Orders <p id="orders">--</p></div>
+<div class="card">Revenue <p id="revenue">--</p></div>
+<div class="card">Profit <p id="profit">--</p></div>
+
+<h2 id="alert"></h2>
+<h3 id="advice"></h3>
+<h3 id="scenario"></h3>
+
+<canvas id="chart" width="600" height="300"></canvas>
+
+<script>
+let token = "";
+
+const ctx = document.getElementById("chart").getContext("2d");
+
+const chart = new Chart(ctx, {
+  type: "line",
+  data: {
+    labels: [],
+    datasets: [
+      { label: "Revenue", data: [], borderColor: "#38bdf8" },
+      { label: "Profit", data: [], borderColor: "#22c55e" }
+    ]
+  },
+  options: {
+    animation: false
+  }
+});
+
+/* =====================
+   🔐 AUTH
+===================== */
+
+async function register() {
+  const res = await fetch("/api/register", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      username: user.value,
+      password: pass.value
+    })
+  });
+
+  const text = await res.text();
+  alert(text);
+}
+
+async function login() {
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      username: user.value,
+      password: pass.value
+    })
+  });
+
+  const data = await res.json();
+
+  if (data.token) {
+    token = data.token;
+    alert("Login thành công");
+  } else {
+    alert("Sai thông tin");
+  }
+}
+
+/* =====================
+   📊 LOAD DATA
+===================== */
+
+async function loadData() {
+  if (!token) return;
+
+  try {
+    const res = await fetch("/api/business", {
+      headers: {
+        "Authorization": "Bearer " + token
+      }
+    });
+
+    const data = await res.json();
+
+    const s = data.state;
+
+    // update số
+    document.getElementById("traffic").innerText = s.traffic;
+    document.getElementById("orders").innerText = s.orders;
+    document.getElementById("revenue").innerText = s.revenue;
+    document.getElementById("profit").innerText = s.profit;
+
+    // alert
+    document.getElementById("alert").innerText = data.alert;
+
+    // advice
+    document.getElementById("advice").innerText =
+      "💡 " + (data.advice.join(" | ") || "Không có");
+
+    // scenario
+    document.getElementById("scenario").innerText =
+      "🔮 Nếu chạy ads → Doanh thu: " + data.scenario.revenue;
+
+    // chart
+    const time = new Date().toLocaleTimeString();
+
+    chart.data.labels.push(time);
+    chart.data.datasets[0].data.push(s.revenue);
+    chart.data.datasets[1].data.push(s.profit);
+
+    if (chart.data.labels.length > 10) {
+      chart.data.labels.shift();
+      chart.data.datasets.forEach(d => d.data.shift());
+    }
+
+    chart.update();
+
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// chạy mỗi 2s
+setInterval(loadData, 2000);
+</script>
+
+</body>
+</html>
