@@ -1,45 +1,173 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-  <title>Home</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-    }
+<meta charset="UTF-8">
+<title>Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    .sidebar {
-      width: 200px;
-      height: 100vh;
-      background: #111;
-      color: white;
-      padding: 20px;
-      position: fixed;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  display: flex;
+  background: #0f172a;
+  color: white;
+}
 
-    .main {
-      margin-left: 220px;
-      padding: 20px;
-    }
-  </style>
+/* SIDEBAR */
+.sidebar {
+  width: 220px;
+  background: #020617;
+  height: 100vh;
+  padding: 20px;
+}
+
+.sidebar h2 {
+  color: #38bdf8;
+}
+
+.sidebar button {
+  width: 100%;
+  margin-top: 20px;
+  padding: 10px;
+  background: #1e293b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* MAIN */
+.main {
+  flex: 1;
+  padding: 20px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 15px;
+}
+
+.card {
+  background: #1e293b;
+  padding: 15px;
+  border-radius: 10px;
+}
+
+/* CHAT */
+.chat-box {
+  background: #020617;
+  height: 200px;
+  overflow-y: auto;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+input {
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+}
+button {
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  background: #38bdf8;
+  cursor: pointer;
+}
+</style>
 </head>
 
 <body>
 
-  <div class="sidebar">
-    <h2>🚀 AI System</h2>
-    <button onclick="logout()">Logout</button>
-  </div>
+<div class="sidebar">
+  <h2>🚀 AI System</h2>
+  <button onclick="logout()">Logout</button>
+</div>
 
-  <div class="main">
-    <h1>Chào mừng bạn!</h1>
-  </div>
+<div class="main">
 
-  <script>
-    function logout() {
-      window.location.href = "login.html";
-    }
-  </script>
+<h1>📊 Dashboard</h1>
+
+<div class="cards">
+  <div class="card"><h3>Traffic</h3><p id="traffic">0</p></div>
+  <div class="card"><h3>Orders</h3><p id="orders">0</p></div>
+  <div class="card"><h3>Revenue</h3><p id="revenue">0</p></div>
+  <div class="card"><h3>Profit</h3><p id="profit">0</p></div>
+</div>
+
+<h2>💬 AI Chat</h2>
+<div id="chatBox" class="chat-box"></div>
+
+<input id="chatInput" style="width:70%" placeholder="Hỏi AI...">
+<button onclick="sendChat()">Gửi</button>
+
+<canvas id="chart"></canvas>
+
+</div>
+
+<script>
+let token = localStorage.getItem("token");
+
+if (!token) {
+  window.location.href = "login.html";
+}
+
+/* LOGOUT */
+function logout() {
+  localStorage.removeItem("token");
+  window.location.href = "login.html";
+}
+
+/* CHAT */
+async function sendChat() {
+  const input = chatInput.value;
+  if (!input) return;
+
+  chatBox.innerHTML += `<div>🧑 ${input}</div>`;
+
+  const res = await fetch("/api/ai", {
+    method: "POST",
+    headers: {
+      "Content-Type":"application/json",
+      "Authorization":"Bearer " + token
+    },
+    body: JSON.stringify({ message: input })
+  });
+
+  const data = await res.json();
+  chatBox.innerHTML += `<div>🤖 ${data.reply}</div>`;
+  chatInput.value = "";
+}
+
+/* CHART */
+const chart = new Chart(document.getElementById("chart"), {
+  type: "line",
+  data: { labels: [], datasets: [{label:"Revenue", data:[]}] }
+});
+
+/* DATA */
+async function loadData() {
+  const res = await fetch("/api/business", {
+    headers: { Authorization: "Bearer " + token }
+  });
+
+  const data = await res.json();
+
+  traffic.innerText = data.state.traffic;
+  orders.innerText = data.state.orders;
+  revenue.innerText = data.state.revenue;
+  profit.innerText = data.state.profit;
+
+  const t = new Date().toLocaleTimeString();
+  chart.data.labels.push(t);
+  chart.data.datasets[0].data.push(data.state.revenue);
+  chart.update();
+}
+
+setInterval(loadData, 2000);
+</script>
 
 </body>
 </html>
