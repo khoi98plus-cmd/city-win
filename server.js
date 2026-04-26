@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import fs from "fs";
+import path from "path";
 
 import { getUserData, saveUserData } from "./src/storage.js";
 import { simulateBusiness } from "./src/simulate.js";
@@ -14,34 +16,45 @@ import { register, login, verifyToken } from "./src/auth.js";
 const app = express();
 
 /* =========================
+   🔧 FIX PATH (QUAN TRỌNG)
+========================= */
+
+// luôn lấy đúng root project trên Render
+const ROOT = process.cwd();
+const DATA_DIR = path.join(ROOT, "data");
+
+// tự tạo thư mục + file nếu thiếu
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+const USERS_FILE = path.join(DATA_DIR, "users.json");
+const HISTORY_FILE = path.join(DATA_DIR, "history.json");
+const CITY_FILE = path.join(DATA_DIR, "city.json");
+
+if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, "[]");
+if (!fs.existsSync(HISTORY_FILE)) fs.writeFileSync(HISTORY_FILE, "[]");
+if (!fs.existsSync(CITY_FILE)) fs.writeFileSync(CITY_FILE, "{}");
+
+/* =========================
    🔧 MIDDLEWARE PRO
 ========================= */
 
-// CORS
 app.use(cors());
-
-// JSON
 app.use(express.json());
-
-// Static frontend
 app.use(express.static("public"));
-
-// Security
 app.use(helmet());
 
-// 🚀 Rate limit chống spam API
 const limiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60
 });
 app.use("/api", limiter);
 
-
 /* =========================
    🔐 AUTH
 ========================= */
 
-// REGISTER
 app.post("/api/register", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -58,7 +71,6 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// LOGIN
 app.post("/api/login", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -75,9 +87,8 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-
 /* =========================
-   🤖 AI CHAT (PRO)
+   🤖 AI CHAT
 ========================= */
 
 app.post("/api/ai", verifyToken, async (req, res) => {
@@ -88,36 +99,13 @@ app.post("/api/ai", verifyToken, async (req, res) => {
       return res.status(400).json({ reply: "Thiếu câu hỏi" });
 
     const username = req.user.username;
-
     const data = getUserData(username);
     const state = simulateBusiness(data);
 
-    const prompt = `
-Bạn là chuyên gia kinh doanh online.
-
-Dữ liệu:
-- Traffic: ${state.traffic}
-- Orders: ${state.orders}
-- Revenue: ${state.revenue}
-- Profit: ${state.profit}
-- Conversion: ${state.conversion_rate}
-
-Yêu cầu:
-- Nói rõ vấn đề
-- Đưa 3 hành động cụ thể
-- Ngắn gọn
-
-Câu hỏi: ${message}
-`;
-
-    // ⚠️ Check API KEY
     if (!process.env.GEMINI_API_KEY) {
-      return res.json({
-        reply: "❌ Chưa cấu hình GEMINI_API_KEY"
-      });
+      return res.json({ reply: "❌ Chưa cấu hình GEMINI_API_KEY" });
     }
 
-    // ⏱️ Timeout tránh treo server
     const controller = new AbortController();
     setTimeout(() => controller.abort(), 8000);
 
@@ -128,7 +116,7 @@ Câu hỏi: ${message}
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
+          contents: [{ parts: [{ text: message }] }]
         })
       }
     );
@@ -147,7 +135,6 @@ Câu hỏi: ${message}
   }
 });
 
-
 /* =========================
    📊 BUSINESS API
 ========================= */
@@ -159,9 +146,7 @@ app.get("/api/business", verifyToken, async (req, res) => {
     let data = getUserData(username);
 
     const state = simulateBusiness(data);
-
     const alert = detectBusinessRisk(state);
-
     const advice = await businessAdvice(state);
 
     const scenario = simulateWhatIf(state, {
@@ -185,22 +170,20 @@ app.get("/api/business", verifyToken, async (req, res) => {
   }
 });
 
-
 /* =========================
-   🧪 HEALTH CHECK
+   🧪 HEALTH
 ========================= */
 
 app.get("/", (req, res) => {
   res.send("🚀 AI Business Simulator đang chạy...");
 });
 
-
 /* =========================
-   ▶️ START SERVER
+   ▶️ START
 ========================= */
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🔥 Server chạy tại http://localhost:${PORT}`);
+  console.log(`🔥 Server chạy tại port ${PORT}`);
 });
