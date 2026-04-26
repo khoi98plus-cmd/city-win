@@ -2,7 +2,12 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+<<<<<<< HEAD
 import dotenv from "dotenv";
+=======
+import fs from "fs";
+import path from "path";
+>>>>>>> 79165be56bd22c31f683d5449d8d90ad0e3e6c9b
 
 import { getUserData, saveUserData } from "./src/storage.js";
 import { simulateBusiness } from "./src/simulate.js";
@@ -15,6 +20,27 @@ import { register, login, verifyToken } from "./src/auth.js";
 dotenv.config();
 
 const app = express();
+
+/* =========================
+   🔧 FIX PATH (QUAN TRỌNG)
+========================= */
+
+// luôn lấy đúng root project trên Render
+const ROOT = process.cwd();
+const DATA_DIR = path.join(ROOT, "data");
+
+// tự tạo thư mục + file nếu thiếu
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+const USERS_FILE = path.join(DATA_DIR, "users.json");
+const HISTORY_FILE = path.join(DATA_DIR, "history.json");
+const CITY_FILE = path.join(DATA_DIR, "city.json");
+
+if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, "[]");
+if (!fs.existsSync(HISTORY_FILE)) fs.writeFileSync(HISTORY_FILE, "[]");
+if (!fs.existsSync(CITY_FILE)) fs.writeFileSync(CITY_FILE, "{}");
 
 /* =========================
    🔧 MIDDLEWARE PRO
@@ -66,7 +92,11 @@ app.post("/api/login", async (req, res) => {
 });
 
 /* =========================
+<<<<<<< HEAD
    🤖 AI CHAT (GEMINI)
+=======
+   🤖 AI CHAT
+>>>>>>> 79165be56bd22c31f683d5449d8d90ad0e3e6c9b
 ========================= */
 
 app.post("/api/ai", verifyToken, async (req, res) => {
@@ -84,10 +114,10 @@ app.post("/api/ai", verifyToken, async (req, res) => {
     }
 
     const username = req.user.username;
-
     const data = getUserData(username);
     const state = simulateBusiness(data);
 
+<<<<<<< HEAD
     const prompt = `
 Bạn là chuyên gia kinh doanh online.
 
@@ -107,6 +137,12 @@ Câu hỏi: ${message}
 `;
 
     // ⏱️ Timeout
+=======
+    if (!process.env.GEMINI_API_KEY) {
+      return res.json({ reply: "❌ Chưa cấu hình GEMINI_API_KEY" });
+    }
+
+>>>>>>> 79165be56bd22c31f683d5449d8d90ad0e3e6c9b
     const controller = new AbortController();
     setTimeout(() => controller.abort(), 10000);
 
@@ -120,11 +156,15 @@ Câu hỏi: ${message}
         },
         signal: controller.signal,
         body: JSON.stringify({
+<<<<<<< HEAD
           contents: [
             {
               parts: [{ text: prompt }]
             }
           ]
+=======
+          contents: [{ parts: [{ text: message }] }]
+>>>>>>> 79165be56bd22c31f683d5449d8d90ad0e3e6c9b
         })
       }
     );
@@ -189,7 +229,7 @@ app.get("/api/business", verifyToken, async (req, res) => {
 });
 
 /* =========================
-   🧪 HEALTH CHECK
+   🧪 HEALTH
 ========================= */
 
 app.get("/", (req, res) => {
@@ -197,11 +237,11 @@ app.get("/", (req, res) => {
 });
 
 /* =========================
-   ▶️ START SERVER
+   ▶️ START
 ========================= */
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🔥 Server chạy tại http://localhost:${PORT}`);
+  console.log(`🔥 Server chạy tại port ${PORT}`);
 });
