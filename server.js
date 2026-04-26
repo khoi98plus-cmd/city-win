@@ -2,12 +2,9 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-<<<<<<< HEAD
 import dotenv from "dotenv";
-=======
 import fs from "fs";
 import path from "path";
->>>>>>> 79165be56bd22c31f683d5449d8d90ad0e3e6c9b
 
 import { getUserData, saveUserData } from "./src/storage.js";
 import { simulateBusiness } from "./src/simulate.js";
@@ -92,11 +89,8 @@ app.post("/api/login", async (req, res) => {
 });
 
 /* =========================
-<<<<<<< HEAD
+/* =========================
    🤖 AI CHAT (GEMINI)
-=======
-   🤖 AI CHAT
->>>>>>> 79165be56bd22c31f683d5449d8d90ad0e3e6c9b
 ========================= */
 
 app.post("/api/ai", verifyToken, async (req, res) => {
@@ -117,8 +111,7 @@ app.post("/api/ai", verifyToken, async (req, res) => {
     const data = getUserData(username);
     const state = simulateBusiness(data);
 
-<<<<<<< HEAD
-    const prompt = `
+const prompt = `
 Bạn là chuyên gia kinh doanh online.
 
 Dữ liệu:
@@ -136,15 +129,16 @@ Yêu cầu:
 Câu hỏi: ${message}
 `;
 
-    // ⏱️ Timeout
-=======
-    if (!process.env.GEMINI_API_KEY) {
-      return res.json({ reply: "❌ Chưa cấu hình GEMINI_API_KEY" });
-    }
+// ✅ Check API KEY
+if (!process.env.GEMINI_API_KEY) {
+  return res.json({
+    reply: "❌ Chưa cấu hình GEMINI_API_KEY"
+  });
+}
 
->>>>>>> 79165be56bd22c31f683d5449d8d90ad0e3e6c9b
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), 10000);
+// ⏱️ Timeout
+const controller = new AbortController();
+setTimeout(() => controller.abort(), 10000);
 
     // 🔥 GỌI GEMINI MỚI
     const response = await fetch(
@@ -156,15 +150,14 @@ Câu hỏi: ${message}
         },
         signal: controller.signal,
         body: JSON.stringify({
-<<<<<<< HEAD
-          contents: [
-            {
-              parts: [{ text: prompt }]
-            }
-          ]
-=======
-          contents: [{ parts: [{ text: message }] }]
->>>>>>> 79165be56bd22c31f683d5449d8d90ad0e3e6c9b
+body: JSON.stringify({
+  contents: [
+    {
+      role: "user",
+      parts: [{ text: prompt }]
+    }
+  ]
+})
         })
       }
     );
