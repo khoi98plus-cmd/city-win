@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Home</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
+
+    .sidebar {
+      width: 200px;
+      height: 100vh;
+      background: #111;
+      color: white;
+      padding: 20px;
+      position: fixed;
+    }
+
+    .main {
+      margin-left: 220px;
+      padding: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="sidebar">
+    <h2>🚀 AI System</h2>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <div class="main">
+    <h1>Chào mừng bạn!</h1>
+  </div>
+
+  <script>
+    function logout() {
+      window.location.href = "login.html";
+    }
+  </script>
+
+</body>
+</html>

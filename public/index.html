@@ -195,18 +195,29 @@ async function register() {
 }
 
 async function login() {
-  const res = await fetch("/api/login", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ username: user.value, password: pass.value })
-  });
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        username: user.value,
+        password: pass.value
+      })
+    });
 
-  const data = await res.json();
+    const data = await res.json();
 
-  if (data.token) {
-    token = data.token;
-    localStorage.setItem("token", token);
-    status.innerText = "🟢 Online";
+    if (data.token) {
+      token = data.token;
+      localStorage.setItem("token", token);
+      document.getElementById("status").innerText = "🟢 Online";
+      alert("Login thành công");
+    } else {
+      alert(data.error || "Sai tài khoản hoặc mật khẩu");
+    }
+
+  } catch (err) {
+    alert("Lỗi server login");
   }
 }
 
